@@ -12,11 +12,16 @@ public class PlayerMovement : MonoBehaviour
     Vector3 startPos;
 
     // Animasyon kotrolleri
-    public bool isRunning = true;
+    public bool isRunning = false;
     public bool isKnocked = false;
     public bool isIdle = true;
     public Animator anim;
 
+    // UI 
+    public GameObject visibleUI;
+
+    // Level
+    public PlatformRunner pr;
 
     private void Awake()
     {
@@ -32,12 +37,36 @@ public class PlayerMovement : MonoBehaviour
     
     private void Update()
     {
+        // Ekrana dokunma algılandıysa koşmaya başla
+        ScreenTouch();
+        
+        // Animasyon ve Hareket kontrolleri
+        AnimControl();
+        
+        SpeedControl();
+    }
+
+    void ScreenTouch()
+    {
+        if (!isRunning)
+        {
+            if (Input.touchCount > 0)
+            {
+                isRunning = true;
+                isIdle = false;
+                isKnocked = false;
+            }
+        }
+    }
+
+    void AnimControl()
+    {
         // Çarpışma olmadığı sürece koşmaya devam et
         if (isRunning)
         {
             //PlayerMove();
-            // Sırada UI kontrolleri var
             TouchAndMove();
+            
             // Animasyon kontrolleri
             anim.SetBool("Running", true);
             anim.SetBool("Idle", false);
@@ -53,19 +82,20 @@ public class PlayerMovement : MonoBehaviour
         }
         if (isIdle)
         {
-
+            anim.SetBool("Running", false);
+            anim.SetBool("Idle", true);
+            anim.SetBool("Knocked", false);
         }
-
-        SpeedControl();
     }
 
+    // Dokunma ile hareket
     void TouchAndMove()
     {
         // Sürekli ileri hareket
-        transform.Translate(0,0,forwadSpeed * Time.deltaTime);
+        transform.Translate(0, 0, forwadSpeed * Time.deltaTime);
         // X ekseninde hareket
         float horMovement = horMoveSpeed * Time.deltaTime;
-        
+        //**********************************************************//
         if (Input.GetTouch(0).position.x < Screen.width / 2 && -6 <= Mathf.Clamp(transform.position.x, -7, 7))
         {
             transform.Translate(-horMovement, 0, 0); // Sola
@@ -76,6 +106,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // Klavye ile hareket
     void PlayerMove()
     {
         // Sürekli ileri hareket
@@ -136,31 +167,40 @@ public class PlayerMovement : MonoBehaviour
             Invoke("BackToStart", 3);
         }
 
+           
         if (collision.gameObject.tag == "Finish")
         {
+            // Leveli artır, Koşma durdur, Duvar boyama işlemi? Yeni level ve başa dön
             PlayerPrefs.SetInt("level", PlayerPrefs.GetInt("level")+1);
             BackToStart();
+            pr.LevelUpload();
         }
     }
-    
+
+    // Bitişe varınca 3-5 sn bekle yeni leveli yükle
     void BackToStart()
     {
         // Çarptıktan sonra başa dön
         transform.position = startPos;
-        print(PlayerPrefs.GetInt("level")+". Level");
+
         {
             // Sahneyi yeniden yükle
             // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
-        
+
+        // Menü Ekranı Getir
+        visibleUI.SetActive(true);
+
         // Bekleme Animasyonuna geç
         anim.SetBool("Idle", true);
-        anim.SetBool("Running", true);
+        anim.SetBool("Running", false);
         anim.SetBool("Knocked", false);
-        isRunning = true;
+        isRunning = false;
         isKnocked = false;
         isIdle = true;
         CancelInvoke("StartPosition");
+        
     }
 
+   
 }

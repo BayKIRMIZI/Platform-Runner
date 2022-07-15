@@ -5,20 +5,21 @@ using UnityEngine.UI;
 
 public class UIControll : MonoBehaviour
 {
-    public Text levelText;
+    public GameObject visibleClose;
+    public Text lvlText;
     // Start is called before the first frame update
     void Start()
     {
-        levelText.text = PlayerPrefs.GetInt("level").ToString();
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetTouch(0) == true)
+        lvlText.text = PlayerPrefs.GetInt("level").ToString();
+        if (Input.touchCount > 0)
         {
-            Application.Quit();
+            visibleClose.SetActive(false);
         }
-        
     }
 }

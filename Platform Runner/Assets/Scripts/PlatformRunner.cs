@@ -5,8 +5,9 @@ using UnityEngine;
 public class PlatformRunner : MonoBehaviour
 {
     // Oyun objeleri
-    public GameObject[] obstacles;
-    public GameObject[] platforms;
+    public GameObject[] obstacles; // Editörden aktarılan engeller
+    public GameObject[] platforms; // Editörden aktarılan platformlar
+    List<GameObject> objectClones; // Klonlanan tüm objeler
 
     // Levele göre objelerin dinamik oluşturulması
     int platformCount;
@@ -23,16 +24,28 @@ public class PlatformRunner : MonoBehaviour
         {
             PlayerPrefs.SetInt("level",1);
         }
+        objectClones = new List<GameObject>();
 
-        // Başlar başlamaz level yükle
+        // Başlangıç platformunu ekle standart 0,0,0 konumu
         Instantiate(platforms[platformStart]);
+        // Levele göre platform sayısı belirle
         Platform_Maker(LevelFollow(PlayerPrefs.GetInt("level")));
     }
 
     
     void Update()
     {
-       
+       // print(objectClones.Count);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.tag == "Finish")
+        {
+            // Leveli artır, Koşma durdur, Duvar boyama işlemi? Yeni level ve başa dön
+            PlayerPrefs.SetInt("level", PlayerPrefs.GetInt("level") + 1);
+            LevelUpload();
+        }
     }
 
     int LevelFollow(int level)
@@ -77,27 +90,28 @@ public class PlatformRunner : MonoBehaviour
 
         for ( i=0; i<maxPlatformCount; i++)
         {
-            // Levele göre platform belirle
             int selectPlatform;
+            // 10. levelden öncesi sadece düz platform ve engellerden oluşur
             if (PlayerPrefs.GetInt("level") < 10)
             {
-                selectPlatform = 2; 
+                selectPlatform = 2; // Düz platform index -> 2
             }
-            else
+            else // Sonrası dönen platformlarda dahil olur
             {
-                selectPlatform = Random.Range(2, 6);
+                // 0 ve 1. index start ve finish platformları
+                selectPlatform = Random.Range(2, 6); // 2-6 index düz ve dönen platformlar
             }
 
             // Dönen Platformlar veya düz platforma göre klonla
             if (selectPlatform >= 3)
             {
-                Instantiate(platforms[selectPlatform], new Vector3(0, -9.55f, i * 30f), transform.rotation);
-
+                // Dönen Platformlar
+                objectClones.Add(Instantiate(platforms[selectPlatform], new Vector3(0, -9.55f, i * 30f), transform.rotation));
             }
             else
             {
-                Instantiate(platforms[selectPlatform], new Vector3(0, 0, i * 30f), transform.rotation);
-                
+                // Düz Platform
+                objectClones.Add(Instantiate(platforms[selectPlatform], new Vector3(0, 0, i * 30f), transform.rotation));
                 // Her düz platformda sabit 3 engel
                 for(int obsCount=0; obsCount<3; obsCount++)
                 {
@@ -125,47 +139,58 @@ public class PlatformRunner : MonoBehaviour
                 } 
             }
         }
-        Instantiate(platforms[platformFinish], new Vector3(0, 0, (i+1) * 30f), Quaternion.Euler(0,-90,0));
-
+        objectClones.Add(Instantiate(platforms[platformFinish], new Vector3(0, 0, (i+1) * 30f), Quaternion.Euler(0,-90,0)));
     }
 
     void Obstacle_Maker(int obs, float zPos)
     {
-        // 0-> Static
-        // 1-> Horizonal
-        // 2-> Rotator
-        // 3-> Half Donut
+        // 0-> Static engel
+        // 1-> Horizonal engel
+        // 2-> Rotator engel
+        // 3-> Half Donut engel
         switch(obs)
         { 
             case 0:
                 float xPos = Random.Range(-1,2);
-                Instantiate(obstacles[obs],new Vector3(xPos*5,0,zPos),transform.rotation);
+                objectClones.Add(Instantiate(obstacles[obs],new Vector3(xPos*5,0,zPos),transform.rotation));
                 break;
 
             case 1:
                 // X ekseninde hareket edecek kendi etrafında dönecek
-                Instantiate(obstacles[obs], new Vector3(Random.Range(-1,1)*5, 0, zPos), transform.rotation);
+                objectClones.Add(Instantiate(obstacles[obs], new Vector3(Random.Range(-1,1)*5, 0, zPos), transform.rotation));
                 break;
 
             case 2:
                 // Yerinde sabit kendi etrafında dönecek
-                Instantiate(obstacles[obs], new Vector3(0, 0, zPos), transform.rotation);
+                objectClones.Add(Instantiate(obstacles[obs], new Vector3(0, 0, zPos), transform.rotation));
                 break;
 
             case 3:
                 int xYon = Random.Range(0,2);
+                // Rotator engeli dönme yönü
                 if(xYon == 0)
                 {
-                    Instantiate(obstacles[obs], new Vector3(7.5f, 0, zPos), Quaternion.Euler(0,0,0));
+                    objectClones.Add(Instantiate(obstacles[obs], new Vector3(7.5f, 0, zPos), Quaternion.Euler(0,0,0)));
                 }
                 else
                 {
-                    Instantiate(obstacles[obs], new Vector3(-7.5f, 0, zPos), Quaternion.Euler(0, -180, 0));
+                    objectClones.Add(Instantiate(obstacles[obs], new Vector3(-7.5f, 0, zPos), Quaternion.Euler(0, -180, 0)));
                 }
                 break;
 
             
         }
 
+    }
+
+    public void LevelUpload()
+    {
+        for (int i = objectClones.Count - 1; i >= 0; i--)
+        {
+            print(objectClones.Count);
+            Destroy(objectClones[i]);
+        }
+        objectClones.Clear();
+        Platform_Maker(LevelFollow(PlayerPrefs.GetInt("level")));
     }
 }
